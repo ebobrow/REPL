@@ -671,7 +671,11 @@ Proof.
   eapply IHT2.
   apply  ST_App1. apply E.
   apply RRt; auto.
-  (* FILL IN HERE *) Admitted.
+  (* prod *)
+  split. eapply preservation; eauto.
+  split. apply (step_preserves_halting _ _ E); eauto.
+  auto.
+Qed.
 
 (** The generalization to multiple steps is trivial: *)
 
@@ -689,7 +693,15 @@ Qed.
 Lemma step_preserves_R' : forall T t t',
   empty |-- t \in T -> (t --> t') -> R T t' -> R T t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction T; unfold R; fold R; intros t t' Hty Hstep Hr.
+  - split.
+    + assumption.
+    + split; auto. apply (step_preserves_halting _ _ Hstep). destruct Hr as [_ [H _]]. apply H.
+  - split.
+    + assumption.
+    + split.
+      * apply (step_preserves_halting _ _ Hstep). destruct Hr as [_ [H _]]. apply H.
+      * Admitted.
 
 Lemma multistep_preserves_R' : forall T t t',
   empty |-- t \in T -> (t -->* t') -> R T t' -> R T t.

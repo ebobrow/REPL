@@ -1,0 +1,42 @@
+% Quick start guide
+\documentclass{beamer}
+\usetheme {default}
+% Title page details
+\title{Logical Relations in Coq}
+% \subtitle{Quick-start guide}
+\author{Elliot Bobrow}
+\institute{UPenn REPL}
+\date{\today}
+\beamertemplatenavigationsymbolsempty
+
+\begin{document}
+\begin{frame}
+% Print the title page as the first slide
+\titlepage
+\end{frame}
+
+\begin{frame}{Introduction to Logical Relations}
+    \begin{theorem}
+        Normalization of STLC: For all terms $e$, if $\,\vdash e : \tau$, then there exists a value $v$ s.t. $e\rightarrow^* v$.
+    \end{theorem}
+    \begin{block}{Proof.}
+        By induction on the typing derivation?
+
+        Case T-App $$\frac{\vdash e1 : \tau_2 \rightarrow \tau \quad \vdash e2 : \tau_2}{\vdash e1\,e2 : \tau}$$
+
+        By IH,
+        $$
+        e1\,e2 \rightarrow^* (\lambda x:\tau_2.e')\,e2 \rightarrow^* e'[v2/x]
+        $$
+        IH is too weak!
+    \end{block}
+\end{frame}
+
+\begin{frame}{Introduction to Logical Relations}
+    Define a relation $N_\tau$:
+    \begin{align*}
+        N_{\text{bool}}(e) &\equiv \quad\vdash e:\text{bool} \wedge \exists v . e \rightarrow^* v \\
+        N_{\tau_1\rightarrow\tau_2}(e) &\equiv \quad\vdash e: \tau_1\rightarrow\tau_2 \wedge\exists v . e \rightarrow^* v \wedge \forall e'. N_{\tau_1}(e') \Rightarrow N_{\tau_2}(e\, e')
+    \end{align*}
+\end{frame}
+\end{document}

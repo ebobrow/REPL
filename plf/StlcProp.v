@@ -146,7 +146,20 @@ Theorem progress' : forall t T,
 Proof.
   intros t.
   induction t; intros T Ht; auto.
-  (* FILL IN HERE *) Admitted.
+  - inversion Ht. discriminate H1.
+  - inversion Ht. subst. remember H2 as HT1. clear HeqHT1.
+    apply IHt1 in H2. apply IHt2 in H4.
+    right. destruct H2; destruct H4.
+    + inversion H; try (subst; inversion HT1). eauto.
+    + destruct H0 as [t2' Ht2']. eauto.
+    + destruct H as [t1' Ht1']. eauto.
+    + destruct H as [t1' Ht1']. eauto.
+  - inversion Ht. subst. remember H3 as HT1. clear HeqHT1.
+    apply IHt1 in H3. apply IHt2 in H5. apply IHt3 in H6.
+    right. apply canonical_forms_bool in HT1.
+    + destruct HT1; subst; eauto.
+    + destruct H3; try assumption.
+      Admitted.
 (** [] *)
 
 (* ################################################################# *)

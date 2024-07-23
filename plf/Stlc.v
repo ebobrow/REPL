@@ -490,7 +490,27 @@ Check <{[x:=true] x}>.
 Inductive substi (s : tm) (x : string) : tm -> tm -> Prop :=
   | s_var1 :
       substi s x (tm_var x) s
-  (* FILL IN HERE *)
+  | s_var2 : forall y,
+      x <> y ->
+      substi s x (tm_var y) (tm_var y)
+  | s_abs1 : forall T t,
+      substi s x <{\x:T, t}> <{\x:T, t}>
+  | s_abs2 : forall y T t1 t2,
+      substi s x t1 t2 ->
+      substi s x <{\y:T, t1}> <{\y:T, t2}>
+  | s_app : forall t1 t1' t2 t2',
+      substi s x t1 t1' ->
+      substi s x t2 t2' ->
+      substi s x <{t1 t2}> <{t1' t2'}>
+  | s_true :
+      substi s x <{true}> <{true}>
+  | s_false :
+      substi s x <{false}> <{false}>
+  | s_if : forall t1 t1' t2 t2' t3 t3',
+      substi s x t1 t1' ->
+      substi s x t2 t2' ->
+      substi s x t3 t3' ->
+      substi s x <{if t1 then t2 else t3}> <{if t1' then t2' else t3'}>
 .
 
 Hint Constructors substi : core.
@@ -498,7 +518,33 @@ Hint Constructors substi : core.
 Theorem substi_correct : forall s x t t',
   <{ [x:=s]t }> = t' <-> substi s x t t'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  split.
+  - generalize dependent t'. induction t.
+    + simpl. intros. destruct (x0 =? s0)%string eqn:E.
+      * apply String.eqb_eq in E. subst. constructor.
+      * apply String.eqb_neq in E. subst. auto.
+    + simpl. intros. remember <{[x0 := s] t1}> as t1'.
+      specialize IHt1 with t1'. assert (t1' = t1') by reflexivity.
+      apply IHt1 in H0.
+      remember <{[x0 := s] t2}> as t2'. specialize IHt2 with t2'.
+      assert (t2' = t2') by reflexivity. apply IHt2 in H1.
+      subst. constructor; assumption.
+    + simpl. intros. destruct (x0 =? s0)%string eqn:E.
+      * apply String.eqb_eq in E. subst. constructor.
+      * apply String.eqb_neq in E. subst. auto.
+    + simpl. intros. subst. constructor.
+    + simpl. intros. subst. constructor.
+    + simpl. intros. subst. constructor.
+      * remember <{[x0 := s] t1}> as t1'. assert (t1' = t1') by reflexivity.
+        apply IHt1 in H. apply H.
+      * remember <{[x0 := s] t2}> as t2'. assert (t2' = t2') by reflexivity.
+        apply IHt2 in H. apply H.
+      * remember <{[x0 := s] t3}> as t3'. assert (t3' = t3') by reflexivity.
+        apply IHt3 in H. apply H.
+  - generalize dependent t'. induction t; intros; simpl.
+    + destruct (x0 =? s0)%string eqn:E.
+      * apply String.eqb_eq in E.
+        Admitted.
 (** [] *)
 
 (* ================================================================= *)
