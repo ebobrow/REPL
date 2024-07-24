@@ -404,7 +404,11 @@ Inductive no_dups : multisubst -> Prop :=
       no_dups g' -> get s g' = None -> no_dups ((s, v) :: g').
 
 Definition instantiation (g : multisubst) (G : env) : Prop :=
-  no_dups g /\ forall x T, (get x G = Some T -> N T (do_multisubst g (tm_var x))).
+  (* no_dups g /\ forall x T, (get x G = Some T -> N T (do_multisubst g (tm_var x))). *)
+  (* no_dups g /\ forall x T, (get x G = Some T -> (exists v, get x g = Some v /\ N T v)). *)
+  (* no_dups g /\ (forall x T, get x G = Some T <-> (exists v, get x g = Some v /\ N T v)). *)
+  no_dups g /\ (forall x, (exists T, get x G = Some T) <-> (exists v, get x g = Some v)) /\
+    (forall x T, get x G = Some T -> exists v, get x g = Some v /\ N T v).
 
 Lemma inst_impl_nd_step : forall g G s v,
     instantiation ((s, v) :: g) G ->
@@ -451,14 +455,24 @@ Lemma instantiation_drop : forall g G s v,
     instantiation ((s, v) :: g) G ->
     instantiation g (drop s G).
 Proof.
-  unfold instantiation. intros. split.
+  intros. split.
   - eapply inst_impl_nd_step. eassumption.
-  - intros. simpl in H. destruct H as [Hnd HN]. specialize HN with x T.
-    destruct (String.eqb_spec s x).
-    + subst. rewrite get_drop_eq in H0. discriminate H0.
-    + apply HN. erewrite get_drop_neq.
-      * eapply H0.
-      * symmetry. assumption.
+  - intros. split.
+    + intros. split.
+      * intros. destruct H as [_ [Hdom _]]. specialize Hdom with x. simpl in *.
+        destruct H0 as [T HT].
+        destruct (String.eqb_spec s x).
+        -- subst. rewrite get_drop_eq in HT. discriminate HT.
+        -- apply Hdom. exists T. rewrite <- get_drop_neq in HT; [| symmetry]; assumption.
+      * intros. destruct H0 as [v' Hv]. destruct H as [Hnd [Hdom _]].
+        specialize Hdom with x. simpl in *. destruct (String.eqb_spec s x).
+        -- inversion Hnd. subst. rewrite Hv in H3. discriminate H3.
+        -- rewrite <- get_drop_neq; [| symmetry; assumption]. apply Hdom.
+           exists v'. assumption.
+    + intros. destruct H as [_ [Hdom HN]]. specialize Hdom with x. specialize HN with x T.
+      simpl in *. destruct (String.eqb_spec s x).
+      * subst. rewrite get_drop_eq in H0. discriminate H0.
+      * rewrite <- get_drop_neq in H0; [| symmetry; assumption]. apply HN in H0. apply H0.
 Qed.
 
 Lemma drop_notin {A : Set} : forall g x,
@@ -505,7 +519,11 @@ Lemma instantiation_drop' : forall g G x v T,
 Proof.
   unfold instantiation. intros g G x v T [Hnd HN]. split.
   - eapply nd_drop' in Hnd. eassumption.
-  - intros. simpl in H. simpl. destruct (String.eqb_spec x x0).
+Admitted.
+
+Lemma instantiation_drop'' : forall g G s,
+    instantiation g G ->
+    instantiation (drop s g) (drop s G).
 Admitted.
 
 Lemma multisubst_app : forall g e1 e2,
@@ -554,43 +572,6 @@ Proof.
   intros. apply N_implies_typed in H. eapply nil_ctxt_implies_closed. eassumption.
 Qed.
 
-Lemma multisubst_preserves_types' : forall e G1 G2 g T,
-    has_type (G1 ++ G2) e T ->
-    instantiation g G1 ->
-    has_type G2 (do_multisubst g e) T.
-Proof.
-  induction e; intros G1 G2 g T Hty Hins.
-  - destruct Hins as [Hnd HN]. specialize HN with s T. inversion Hty. subst. destruct (get s G1) eqn:Es.
-    + eapply get1 in Es. rewrite Es in H1. apply HN in H1. apply N_implies_typed in H1.
-      apply weakening'. assumption.
-    + apply get2 in H1; [| assumption].
-      Admitted.
-
-Lemma multisubst_preserves_types : forall e G g T,
-    has_type G e T ->
-    instantiation g G ->
-    has_type nil (do_multisubst g e) T.
-Proof.
-(*   intros. apply multisubst_preserves_types' with (G1 := G). *)
-(*   - rewrite app_nil_r. assumption. *)
-(*   - assumption. *)
-(* Qed. *)
-  induction e; intros G g T Hty Hins.
-  - destruct Hins as [Hnd HN].
-    specialize HN with s T. inversion Hty. apply HN in H1. apply N_implies_typed in H1. apply H1.
-  - inversion Hty. subst. rewrite multisubst_app. eapply T_App.
-    + eapply IHe1; eassumption.
-    + eapply IHe2; eassumption.
-  - inversion Hty. subst. rewrite multisubst_abs. eapply T_Abs.
-    admit.
-  - inversion Hty. rewrite multisubst_true. constructor.
-  - inversion Hty. rewrite multisubst_false. constructor.
-  - inversion Hty. subst. rewrite multisubst_if. constructor.
-    + eapply IHe1; eassumption.
-    + eapply IHe2; eassumption.
-    + eapply IHe3; eassumption.
-Admitted.
-
 Lemma subst_closed : forall s x t,
     ~ appears_free_in x t ->
     subst x s t = t.
@@ -621,6 +602,17 @@ Proof.
     assert (~ appears_free_in x t3). { unfold not. intros. apply H. apply afi_if3. assumption. }
     apply IHt1 in H0. rewrite H0. apply IHt2 in H1. rewrite H1. apply IHt3 in H2. rewrite H2.
     reflexivity.
+Qed.
+
+Lemma multisubst_closed : forall g t,
+    closed t ->
+    do_multisubst g t = t.
+Proof.
+  induction g.
+  - intros. reflexivity.
+  - intros. destruct a. simpl. rewrite subst_closed.
+    + apply IHg. assumption.
+    + unfold closed in H. specialize H with s. apply H.
 Qed.
 
 Lemma subst_commute : forall x1 v1 x2 v2 t,
@@ -656,19 +648,20 @@ Lemma instantiation_commute : forall g G x1 v1 x2 v2,
     instantiation ((x1, v1) :: (x2, v2) :: g) G ->
     instantiation ((x2, v2) :: (x1, v1) :: g) G.
 Proof.
-  induction g.
-  - intros. split.
-    + repeat constructor.
-      simpl. apply String.eqb_neq in H. rewrite H. reflexivity.
-    + intros. destruct H0 as [_ HN]. apply HN in H1. simpl. simpl in H1.
-      destruct (String.eqb_spec x1 x).
-      * subst. assert (String.eqb x2 x = false). { apply String.eqb_neq. symmetry. apply H. }
-        rewrite H0. simpl. rewrite String.eqb_refl. admit.
-      * simpl in H1. destruct (String.eqb_spec x2 x).
-        -- admit.
-        -- simpl. apply String.eqb_neq in n. rewrite n. assumption.
-  - intros. admit.
-    Admitted.
+  Admitted.
+  (* induction g. *)
+  (* - intros. split. *)
+  (*   + repeat constructor. *)
+  (*     simpl. apply String.eqb_neq in H. rewrite H. reflexivity. *)
+  (*   + intros. destruct H0 as [_ HN]. apply HN in H1. simpl. simpl in H1. *)
+  (*     destruct (String.eqb_spec x1 x). *)
+  (*     * subst. assert (String.eqb x2 x = false). { apply String.eqb_neq. symmetry. apply H. } *)
+  (*       rewrite H0. simpl. rewrite String.eqb_refl. admit. *)
+  (*     * simpl in H1. destruct (String.eqb_spec x2 x). *)
+  (*       -- admit. *)
+  (*       -- simpl. apply String.eqb_neq in n. rewrite n. assumption. *)
+  (* - intros. admit. *)
+  (*   Admitted. *)
 
 Lemma instantiation_impl_closed : forall g G x v T,
     get x G = Some T ->
@@ -676,9 +669,10 @@ Lemma instantiation_impl_closed : forall g G x v T,
     closed v.
 Proof.
   induction g.
-  - intros. destruct H0 as [_ HN]. specialize HN with x T.
-    apply HN in H. apply N_implies_closed in H. simpl in H. rewrite String.eqb_refl in H.
-    apply H.
+  - intros. destruct H0 as [_ [_ HN]]. specialize HN with x T.
+    apply HN in H. destruct H as [v0 [Hgetv HNv]].
+    inversion Hgetv. rewrite String.eqb_refl in H0. inversion H0. subst.
+    apply N_implies_closed in HNv. apply HNv.
   - intros. destruct a. assert (x <> s).
     { destruct H0 as [Hnd _]. inversion Hnd. subst. inversion H4. destruct (String.eqb_spec s x).
       - discriminate H1.
@@ -729,6 +723,137 @@ Proof.
   - apply IHmultistep. eapply step_closed; eassumption.
 Qed.
 
+Lemma multisubst_var : forall g G x T v,
+    has_type G (tm_var x) T ->
+    instantiation g G ->
+    get x g = Some v ->
+    do_multisubst g (tm_var x) = v.
+Proof.
+  induction g.
+  - intros. inversion H1.
+  - intros. destruct a. remember H0 as Hins. clear HeqHins.
+    destruct H0 as [_ HN]. inversion H. apply HN in H3.
+    destruct H3 as [v' [Hgetv HNv]]. subst.
+    simpl in *. destruct (String.eqb_spec s x).
+    + inversion H1. inversion Hgetv. subst. apply N_implies_closed in HNv.
+      apply multisubst_closed. assumption.
+    + eapply IHg with (G := drop s G).
+      * constructor. inversion H. rewrite <- get_drop_neq.
+        -- eassumption.
+        -- symmetry. assumption.
+      * eapply instantiation_drop. eassumption.
+      * assumption.
+Qed.
+
+Lemma multisubst_var' : forall g x,
+    get x g = None ->
+    do_multisubst g (tm_var x) = tm_var x.
+Proof.
+  induction g.
+  - intros. reflexivity.
+  - intros. destruct a. simpl in *. destruct (String.eqb_spec s x).
+    + discriminate H.
+    + apply IHg. assumption.
+Qed.
+
+Lemma notsome_impl_none {A : Type} : forall g x,
+    ~ (exists v, get x g = Some v) ->
+    @get A x g = None.
+Proof.
+  induction g.
+  - intros. reflexivity.
+  - intros. destruct a. simpl in *. destruct (String.eqb s x).
+    + exfalso. apply H. exists a. reflexivity.
+    + apply IHg. apply H.
+Qed.
+
+Lemma get5 {A : Type} : forall G1 G2 G3 x T,
+    get x (G1 ++ G2 ++ G3) = Some T ->
+    get x G2 = None ->
+    @get A x (G1 ++ G3) = Some T.
+Proof.
+  intros. destruct (get x G1) eqn:E1.
+  - remember E1. clear Heqe. eapply get1 in E1. rewrite H in E1. rewrite <- E1 in e.
+    apply get1. assumption.
+  - apply get2 in H; [| assumption]. apply get2 in H; [| assumption].
+    apply get3; assumption.
+Qed.
+
+Lemma annoying_get_lemma : forall e G1 G2 G3 s T U,
+    has_type ((s, U) :: G1 ++ G2 ++ G3) e T ->
+    has_type ((s, U) :: G1 ++ (drop s G2) ++ G3) e T.
+Proof.
+  induction e; intros; inversion H; econstructor; eauto.
+  - simpl in *. destruct (String.eqb_spec s0 s).
+    + assumption.
+    + destruct (get s G1) eqn:E.
+      * remember E. clear Heqe. eapply get1 in E. rewrite H2 in E. rewrite E.
+        apply get1. assumption.
+      * apply get3 with (G2 := drop s0 G2 ++ G3) (T := T) in E.
+        -- assumption.
+        -- apply get2 in H2.
+           ++ destruct (get s G2) eqn:E2.
+              ** remember E2. clear Heqe. eapply get1 in E2. rewrite H2 in E2. rewrite E2.
+                 apply get1. rewrite <- get_drop_neq; [|symmetry]; assumption.
+              ** apply get2 in H2.
+                 --- rewrite get_drop_neq with (s2 := s0) in E2. apply get3; assumption.
+                     symmetry. assumption.
+                 --- assumption.
+           ++ assumption.
+   - subst. admit.
+Admitted.
+
+Lemma multisubst_preserves_types' : forall e G1 G2 G3 g T,
+    (forall x U, get x G2 = Some U -> get x G1 = None) ->
+    has_type (G1 ++ G2 ++ G3) e T ->
+    instantiation g G2 ->
+    has_type (G1 ++ G3) (do_multisubst g e) T.
+Proof.
+  induction e; intros G1 G2 G3 g T Hdisj Hty Hins.
+  - remember Hins. clear Heqi.
+    destruct Hins as [Hnd [Hdom HN]]. specialize HN with s T.
+    inversion Hty. subst. destruct (get s G2) eqn:Es.
+    + assert (Some t = Some T).
+      { remember Es. clear Heqe. apply Hdisj in Es. erewrite get3 in H1.
+        - eapply H1.
+        - assumption.
+        - apply get1. assumption. }
+      apply HN in H. destruct H as [v [Hgetv HNv]].
+      apply N_implies_typed in HNv. erewrite multisubst_var with (G := G2); eauto using T_Var.
+      apply weakening'. eassumption.
+    + specialize Hdom with s. destruct Hdom as [Hdomf Hdomb].
+      assert (~ exists (T : ty), None = Some T). { unfold not. intros. destruct H as [T' HT']. discriminate HT'. }
+      rewrite <- Es in H. assert (~ exists v, get s g = Some v).
+      { unfold not. intros. apply H. apply Hdomb. apply H0. }
+      rewrite multisubst_var'.
+      * constructor. eapply get5; eassumption.
+      * apply notsome_impl_none. assumption.
+  - inversion Hty. subst. rewrite multisubst_app. eapply T_App; eauto.
+  - inversion Hty. subst. rewrite multisubst_abs. eapply T_Abs.
+    eapply IHe with (G1 := (s, t) :: G1) (G2 := drop s G2).
+    + intros. simpl. destruct (String.eqb_spec s x).
+      * subst. rewrite get_drop_eq in H. discriminate H.
+      * rewrite <- get_drop_neq in H.
+        -- apply Hdisj in H. apply H.
+        -- symmetry. assumption.
+    + apply annoying_get_lemma. assumption.
+    + apply instantiation_drop''. assumption.
+  - inversion Hty. rewrite multisubst_true. constructor.
+  - inversion Hty. rewrite multisubst_false. constructor.
+  - inversion Hty. subst. rewrite multisubst_if. constructor; eauto.
+Qed.
+
+Lemma multisubst_preserves_types : forall e G g T,
+    has_type G e T ->
+    instantiation g G ->
+    has_type nil (do_multisubst g e) T.
+Proof.
+  intros. apply multisubst_preserves_types' with (G1 := nil) (G2 := G).
+  - intros. reflexivity.
+  - rewrite app_nil_r. simpl. assumption.
+  - assumption.
+Qed.
+
 Lemma fundamental_lemma : forall G g e T,
     has_type G e T ->
     instantiation g G ->
@@ -737,7 +862,14 @@ Proof.
   intros G g e T Hty Hsub.
   generalize dependent g.
   induction Hty; intros.
-  - (* var *) destruct Hsub as [_ HN]. eapply HN; eassumption.
+  - (* var *) remember Hsub. clear Heqi.
+    destruct Hsub as [_ [Hdom HN]]. specialize HN with x T1.
+    apply HN in H. destruct H as [v [Hgetv HNv]].
+    specialize Hdom with x. destruct Hdom as [_ Hdomb].
+    assert (exists v, get x g = Some v). { exists v. apply Hgetv. }
+    apply Hdomb in H. destruct H as [T HT].
+    erewrite multisubst_var with (v := v); try eassumption.
+    constructor. apply HT.
   - (* abs *) subst. simpl. split.
     + eapply multisubst_preserves_types; eauto with db.
     + split.
