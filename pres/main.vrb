@@ -1,0 +1,12 @@
+\frametitle{Formalization in Coq}
+\begin{lstlisting}[language={[Objective]Caml},basicstyle=\footnotesize\ttfamily,keywordstyle=\bfseries]
+        Fixpoint N (T : ty) (e : tm) : Prop :=
+          match T with
+          | bool => has_type nil e T
+            /\ exists e', step e e'
+          | arr T1 T2 => has_type nil e T
+            /\ exists e', step e e'
+            /\ forall e',
+              N T1 e' -> N T2 (app e e')
+          end.
+    \end{lstlisting}

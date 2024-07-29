@@ -1,6 +1,9 @@
 % Quick start guide
 \documentclass{beamer}
 \usetheme {default}
+
+\usepackage{listings}
+
 % Title page details
 \title{Logical Relations in Coq}
 % \subtitle{Quick-start guide}
@@ -21,22 +24,63 @@
     \end{theorem}
     \begin{block}{Proof.}
         By induction on the typing derivation?
+    \end{block}
+\end{frame}
 
-        Case T-App $$\frac{\vdash e1 : \tau_2 \rightarrow \tau \quad \vdash e2 : \tau_2}{\vdash e1\,e2 : \tau}$$
+\begin{frame}{Introduction to Logical Relations}
+    Case T-App $$\frac{\vdash e1 : \tau_2 \rightarrow \tau \quad \vdash e2 : \tau_2}{\vdash e1\,e2 : \tau}\,\texttt{T-App}$$
 
         By IH,
         $$
         e1\,e2 \rightarrow^* (\lambda x:\tau_2.e')\,e2 \rightarrow^* e'[v2/x]
         $$
-        IH is too weak!
-    \end{block}
+        \pause
+        \vspace{2em}
+        \centerline{\alert{IH is too weak!}}
 \end{frame}
 
 \begin{frame}{Introduction to Logical Relations}
     Define a relation $N_\tau$:
+    \pause
+    % \setbeamercovered{transparent}
+    % \begin{align*}
+    %     N_{\text{bool}}(e) \equiv &\,\onslide<2>{\vdash e:\text{bool} \wedge} \only<2>{\exists v . e \rightarrow^* v}\only<3>{e\rightarrow^* true\vee e\rightarrow^* false} \\
+    %     N_{\tau_1\rightarrow\tau_2}(e) \equiv &\,\onslide<2>{\vdash e: \tau_1\rightarrow\tau_2 \wedge}\exists v . e \rightarrow^* v \\
+    %     &\wedge \forall e'. N_{\tau_1}(e') \Rightarrow N_{\tau_2}(e\, e')
+    % \end{align*}
     \begin{align*}
-        N_{\text{bool}}(e) &\equiv \quad\vdash e:\text{bool} \wedge \exists v . e \rightarrow^* v \\
-        N_{\tau_1\rightarrow\tau_2}(e) &\equiv \quad\vdash e: \tau_1\rightarrow\tau_2 \wedge\exists v . e \rightarrow^* v \wedge \forall e'. N_{\tau_1}(e') \Rightarrow N_{\tau_2}(e\, e')
+        N_{\text{bool}}(e) \equiv &\,\vdash e:\text{bool} \wedge \exists v . e \rightarrow^* v \\
+        N_{\tau_1\rightarrow\tau_2}(e) \equiv &\,\vdash e: \tau_1\rightarrow\tau_2 \wedge\exists v . e \rightarrow^* v \\
+        &\wedge \forall e'. N_{\tau_1}(e') \Rightarrow N_{\tau_2}(e\, e')
     \end{align*}
+\end{frame}
+
+\begin{frame}{Introduction to Logical Relations}
+    Now prove:
+    \begin{enumerate}
+        \item \only<1>{If $\vdash e:\tau$, then $N_\tau(e)$.}
+            \only<2>{If $\Gamma\vdash e:\tau$ and $\gamma\vDash\Gamma$, then $N_\tau(\gamma(e))$.}
+        \item If $N_\tau(e)$, then $\exists v . e\rightarrow^* v$.
+    \end{enumerate}
+    \onslide<2>{where
+    \begin{align*}
+        \gamma = \{x_1\mapsto v1,\dots,x_n\mapsto v_n\}\vDash\Gamma &:= \text{dom}(\Gamma)=\text{dom}(\gamma) \\
+        &\wedge (\forall x\in\text{dom}(\Gamma). N_{\Gamma(x)}(\gamma(e))
+    \end{align*}
+    }
+\end{frame}
+
+\begin{frame}[fragile]{Formalization in Coq}
+    \begin{lstlisting}[language={[Objective]Caml},basicstyle=\footnotesize\ttfamily,keywordstyle=\bfseries]
+        Fixpoint N (T : ty) (e : tm) : Prop :=
+          match T with
+          | bool => has_type nil e T
+            /\ exists e', step e e'
+          | arr T1 T2 => has_type nil e T
+            /\ exists e', step e e'
+            /\ forall e',
+              N T1 e' -> N T2 (app e e')
+          end.
+    \end{lstlisting}
 \end{frame}
 \end{document}
