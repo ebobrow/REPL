@@ -4,9 +4,7 @@ From Coq Require Import Lists.List.
 Definition context n := fin n -> ty.
 
 Definition empty_ctxt : context 0 :=
-  fun x => match x with
-          | False => tybool
-        end.
+  fun x => match x with end.
 
 Inductive has_type { n : nat } (Γ : context n) : tm n -> ty -> Prop :=
   | T_Var i τ :
@@ -26,6 +24,8 @@ Inductive has_type { n : nat } (Γ : context n) : tm n -> ty -> Prop :=
     has_type Γ e2 τ ->
     has_type Γ e3 τ ->
     has_type Γ (tmif e1 e2 e3) τ.
+
+Hint Constructors has_type : core.
 
 Definition good_renaming {n m}
   (ρ : ren n m)

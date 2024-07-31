@@ -18,29 +18,30 @@
 \titlepage
 \end{frame}
 
+\begin{frame}{STLC + Bool}
+    Syntax:
+    \begin{align*}
+        e &::= x && \tau ::= Bool \\
+        &\,| \quad \lambda x:\tau . e && \quad| \quad \tau_1 \rightarrow \tau_2 \\
+        &\,| \quad e_1\,e_2 \\
+        &\,| \quad \text{true} \\
+        &\,| \quad \text{false} \\
+        &\,| \quad \text{if $e_1$ then $e_2$ else $e_3$} \\
+        \\
+        v &::= \lambda x:\tau . e \\
+        &\,| \quad \text{true} \\
+        &\,| \quad \text{false}
+    \end{align*}
+\end{frame}
+
 \begin{frame}{Introduction to Logical Relations}
     \begin{theorem}
-        Normalization of STLC: For all terms $e$, if $\,\vdash e : \tau$, then there exists a value $v$ s.t. $e\rightarrow^* v$.
+        Normalization: For all terms $e$, if $\,\vdash e : \tau$, then there exists a value $v$ s.t. $e\rightarrow^* v$.
     \end{theorem}
-    \begin{block}{Proof.}
-        By induction on the typing derivation?
-    \end{block}
 \end{frame}
 
 \begin{frame}{Introduction to Logical Relations}
-    Case T-App $$\frac{\vdash e1 : \tau_2 \rightarrow \tau \quad \vdash e2 : \tau_2}{\vdash e1\,e2 : \tau}\,\texttt{T-App}$$
-
-        By IH,
-        $$
-        e1\,e2 \rightarrow^* (\lambda x:\tau_2.e')\,e2 \rightarrow^* e'[v2/x]
-        $$
-        \pause
-        \vspace{2em}
-        \centerline{\alert{IH is too weak!}}
-\end{frame}
-
-\begin{frame}{Introduction to Logical Relations}
-    Define a relation $N_\tau$:
+    Define a predicate $N_\tau$:
     \pause
     % \setbeamercovered{transparent}
     % \begin{align*}
@@ -49,9 +50,9 @@
     %     &\wedge \forall e'. N_{\tau_1}(e') \Rightarrow N_{\tau_2}(e\, e')
     % \end{align*}
     \begin{align*}
-        N_{\text{bool}}(e) \equiv &\,\vdash e:\text{bool} \wedge \exists v . e \rightarrow^* v \\
-        N_{\tau_1\rightarrow\tau_2}(e) \equiv &\,\vdash e: \tau_1\rightarrow\tau_2 \wedge\exists v . e \rightarrow^* v \\
-        &\wedge \forall e'. N_{\tau_1}(e') \Rightarrow N_{\tau_2}(e\, e')
+        N_{\text{bool}}(e) \equiv &\,\vdash e:\text{bool} \,\,\wedge\,\, \exists v . e \rightarrow^* v \\[2ex]
+        N_{\tau_1\rightarrow\tau_2}(e) \equiv &\,\vdash e: \tau_1\rightarrow\tau_2 \,\,\wedge\,\, \exists v . e \rightarrow^* v \\[1ex]
+        &\wedge\,\, \forall e'. N_{\tau_1}(e') \Rightarrow N_{\tau_2}(e\, e')
     \end{align*}
 \end{frame}
 
@@ -64,7 +65,7 @@
     \end{enumerate}
     \onslide<2>{where
     \begin{align*}
-        \gamma = \{x_1\mapsto v1,\dots,x_n\mapsto v_n\}\vDash\Gamma &:= \text{dom}(\Gamma)=\text{dom}(\gamma) \\
+        \gamma = \{x_1\mapsto v_1,\dots,x_n\mapsto v_n\}\vDash\Gamma &:= \text{dom}(\Gamma)=\text{dom}(\gamma) \\
         &\wedge (\forall x\in\text{dom}(\Gamma). N_{\Gamma(x)}(\gamma(e))
     \end{align*}
     }
