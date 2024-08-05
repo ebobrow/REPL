@@ -1,5 +1,4 @@
 Require Export stlc.
-From Coq Require Import Lists.List.
 
 Definition context n := fin n -> ty.
 

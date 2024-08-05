@@ -1,0 +1,21 @@
+\frametitle{Example}
+\begin{lstlisting}[mathescape=true,basicstyle=\footnotesize\ttfamily,keywordstyle=\bfseries]
+$\sigma$ : nat -> tm
+e v : tm
+    \end{lstlisting}
+    \hrule
+    \begin{onlyenv}<1>
+    \begin{lstlisting}[mathescape=true,basicstyle=\footnotesize\ttfamily,keywordstyle=\bfseries]
+P (app (abs e)[$\sigma$] v)
+    \end{lstlisting}
+    \end{onlyenv}
+    \begin{onlyenv}<2>
+    \begin{lstlisting}[mathescape=true,basicstyle=\footnotesize\ttfamily,keywordstyle=\bfseries]
+P e[1 $\cdot$ ($\sigma$ $\circ$ $\uparrow$)][v $\cdot$ id]
+    \end{lstlisting}
+    \end{onlyenv}
+    \begin{onlyenv}<3>
+    \begin{lstlisting}[mathescape=true,basicstyle=\footnotesize\ttfamily,keywordstyle=\bfseries]
+P e[v $\cdot$ $\sigma$]
+    \end{lstlisting}
+    \end{onlyenv}

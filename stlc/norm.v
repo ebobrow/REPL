@@ -45,7 +45,12 @@ Lemma preservation {n : nat} : forall Γ (e e' : tm n) τ,
     has_type Γ e τ ->
     step e e' ->
     has_type Γ e' τ.
-Admitted.
+Proof.
+  intros Γ e e' τ Hty Hstep. induction Hty; inversion Hstep; subst; eauto.
+  inversion Hty1. subst. eapply morphing.
+  - apply H0.
+  - asimpl. unfold good_subst. intros. induction i; simpl; auto.
+Qed.
 
 Lemma multi_preservation {n : nat} : forall Γ (e e' : tm n) τ,
     has_type Γ e τ ->
@@ -184,17 +189,17 @@ Fixpoint N (τ : ty) (e : tm 0) : Prop :=
 Lemma N_implies_norm : forall τ e,
     N τ e -> steps e.
 Proof.
-  induction τ.
-  - (* -> *) intros. simpl in H. induction τ1.
-    + admit.
-    + specialize H with tmtrue. apply IHτ2 in H.
-      * inversion H.
-    eapply IHτ2 in H.
-    + admit.
-    + admit.
-  - (* bool *) intros. simpl in H. destruct H.
-    + exists tmtrue. split; auto.
-    + exists tmfalse. split; auto.
+  (* induction τ. *)
+  (* - (* -> *) intros. simpl in H. induction τ1. *)
+  (*   + admit. *)
+  (*   + specialize H with tmtrue. apply IHτ2 in H. *)
+  (*     * inversion H. *)
+  (*   eapply IHτ2 in H. *)
+  (*   + admit. *)
+  (*   + admit. *)
+  (* - (* bool *) intros. simpl in H. destruct H. *)
+  (*   + exists tmtrue. split; auto. *)
+  (*   + exists tmfalse. split; auto. *)
 Admitted.
 
 (* don't check domain equality bc both total functions over fin n *)
@@ -266,7 +271,7 @@ Proof.
       * apply multi_app_cong2.
         -- constructor.
         -- eassumption.
-      * constructor.
+      * constructor. assumption.
     + asimpl. apply IHHty. apply γ_ok_cons; eauto using N_multi_preservation.
   - (* app *) simpl. specialize IHHty1 with γ. remember Hγ. clear Heqγ0.
     apply IHHty1 in Hγ. simpl in Hγ.

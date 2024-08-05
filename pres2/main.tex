@@ -1,0 +1,318 @@
+% Quick start guide
+\documentclass[17pt,aspectratio=169]{beamer}
+\usetheme{metropolis}
+
+\usepackage{listings}
+\usepackage{xcolor}
+% \usepackage[normalem]{ulem}
+
+% Title page details
+\title{A brief introduction to Autosubst}
+% \subtitle{and you should too}
+\author{Elliot Bobrow}
+\institute{Advised by Stephanie Weirich and Yiyun Liu}
+\date[\today]{}
+
+\beamertemplatenavigationsymbolsempty
+\setbeamercovered{transparent}
+
+\begin{document}
+\begin{frame}
+% Print the title page as the first slide
+\titlepage
+\end{frame}
+
+\begin{frame}{What is Autosubst 2?}
+    \begin{itemize}
+        \item Tool for proofs about programming languages in Coq
+        \item Provides tactics to automatically simplify terms
+            \begin{itemize}
+                \item Prove equality by simplifying two terms to the same form
+            \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\section{Parallel substitutions}
+
+\begin{frame}{Untyped Lambda Calculus}
+    \begin{align*}
+        e &::= \only<1>{x}\only<2>{n} \\
+        &\,|\quad \lambda \onslide<1>{x.}e \\
+        &\,|\quad e_1\, e_2
+    \end{align*}
+\end{frame}
+
+\begin{frame}{De Bruijn Indices}
+    \[
+        \lambda x.(\lambda y. y\,(\lambda z.z)) (\lambda y.x\,y)
+        \Longrightarrow
+        \color{red}\lambda
+        \color{black} (\color{blue}\lambda 1\color{black}\,(\color{violet}\lambda 1\color{black}))
+        (\color{teal}\lambda \color{red}2\,\color{teal}1\color{black})
+    \]
+\end{frame}
+
+\begin{frame}{Single Substitutions}
+    % \[
+    %     e[v_1/x_1]\visible<2->{[v_2/x_2]}\visible<3->{\cdots[v_n/x_n]}
+    % \]
+
+    % \[
+    %     (\lambda \onslide<1>{x.} a)\,b \longrightarrow a[b/\only<1>{x}\only<2->{1}]\only<3->{[2/2][3/3]\cdots}
+    % \]
+    \[
+        (\lambda a)\,b \longrightarrow a[b/1]\only<2->{[2/2][3/3]\cdots}
+    \]
+\end{frame}
+
+\begin{frame}{Parallel Substitutions}
+    % \[
+    %     e[v_1/x_1][v_2/x_2]\cdots[v_n/x_n] \Longrightarrow e[\sigma]
+    % \]
+    % where
+    % \[
+    %     \sigma = \only<1>{\{x_1\mapsto v_1,\dots,x_n\mapsto v_n\}}
+    %              \only<2>{(v_1,v_2,\dots,v_n)}
+    % \]
+    \[
+        (\lambda a)\,b\longrightarrow a[\sigma]
+    \]
+    where
+    \[
+        \sigma = (b,2,3,\dots)
+    \]
+\end{frame}
+
+\begin{frame}{Primitives}
+    \begin{align*}
+        \text{id}=(1,2,3,\dots) && \uparrow\,=(2,3,4,\dots)
+    \end{align*}
+    \vspace{1em}
+    \begin{align*}
+        e\cdot \sigma &= (e,\sigma(1),\sigma(2),\dots)
+        % \visible<2>{e\cdot\text{id} &= (e,1,2,\dots)}
+    \end{align*}
+\end{frame}
+
+\begin{frame}{Instantiation}
+    \begin{align*}
+        x[\sigma] &= \sigma(x) \\
+        (a\,b)[\sigma] &= (a[\sigma])\,(b[\sigma]) \\
+        (\lambda a)[\sigma] &= \lambda (a[1\cdot (\sigma\,\circ\uparrow)])
+    \end{align*}
+\end{frame}
+
+\begin{frame}{Instantiation Example}
+    \only<1>{
+    \[
+        % \color{gray}\lambda
+        \color{black}1\,(\lambda 2\,1)
+    \]
+    }
+    % \only<3->{
+    %     \[
+    %     \color{red}1\color{black}\longmapsto e
+    %     \]
+    % }
+    \only<2-3>{
+        \[
+            % \visible<2>{\color{gray}\lambda}
+            \color{red}1\color{black}\,(\lambda\color{red}2\color{black}\,1)
+            \only<3>{[(e,2,3,\dots)]}
+        \]
+    }
+    \only<4-7>{
+        \[
+            \only<4>{(\color{red}1\color{black}[(e,2,3,\dots)])}
+            \only<5->{e}
+            \,
+            \only<4-5>{((\lambda \color{red}2\color{black}\,1)[(e,2,3,\dots)])}
+            \only<6>{(\lambda (\color{red}2\,\color{black}1)[1\cdot((e,2,3,\dots)\,\circ\uparrow)])}
+            % \only<7>{(\lambda (\color{red}2\,\color{black}1)[1\cdot(e[\uparrow],3,4,\dots)])}
+            \only<7>{(\lambda (\color{red}2\,\color{black}1)[(1,e[\uparrow],3,4,\dots)])}
+        \]
+    }
+    \only<8>{
+        \[
+            \color{black}e\,(\lambda e[\uparrow]\,1)
+        \]
+    }
+\end{frame}
+
+% \begin{frame}{Instantiation}
+%     \alert{Example}:
+%     \begin{align*}
+%         \only<1>{(\lambda y.\lambda x.x\,y)\,v &\longrightarrow (\lambda x.x\,y)[v/y] \\}
+%         \only<2->{(\lambda\lambda 2\,1)\,v &\longrightarrow (\lambda 2\,1)[(v,2,3,\dots)] \\}
+%         \visible<3->{&\longrightarrow \lambda ((2\,1)[
+%             \only<3>{1\cdot((v,2,3,\dots)\,\circ\uparrow)}
+%             \only<4>{1\cdot(v[\uparrow],3,4,\dots)}
+%             \only<5->{(1,v[\uparrow],3,4,\dots)}
+%         ]) \\}
+%         \visible<6->{&\longrightarrow \lambda ((2[(1,v[\uparrow],3,4,\dots)])\,(1[(1,v[\uparrow],3,4,\dots)])) \\}
+%         \visible<7->{&\longrightarrow \lambda (v[\uparrow])\,1}
+%     \end{align*}
+% \end{frame}
+
+% \section{Scoped syntax}
+
+% \begin{frame}{The Goal}
+%     For $n:\mathbb{N}$, \texttt{tm n} is the type of terms with $n$ free variables
+% \end{frame}
+
+% \begin{frame}[fragile]{Finite types}
+%     \begin{definition}
+%         \texttt{fin n}: A type with exactly $n$ members
+%         \vspace{0.5em}
+%         % \[
+%         %     \mathcal{F}_0=\emptyset,\quad\quad\mathcal{F}_{n+1}=(\mathcal{F}_n)_\perp
+%         % \]
+%         \begin{lstlisting}[basicstyle=\footnotesize\ttfamily,language={[Objective]Caml}]
+%         Fixpoint fin (n : nat) : Type :=
+%             match n with
+%             | 0   => False
+%             | S n => option (fin n)
+%             end.
+%         \end{lstlisting}
+%     \end{definition}
+% \end{frame}
+
+% \begin{frame}[fragile]{Finite terms}
+%     \begin{definition}
+%         \texttt{tm n}: A term whose variables are of type \texttt{fin n}
+%         \vspace{0.5em}
+%         \begin{lstlisting}[basicstyle=\footnotesize\ttfamily,language={[Objective]Caml}]
+%         Inductive tm (n : nat) : Type :=
+%             | var_tm : fin n -> tm n
+%             ...
+%         \end{lstlisting}
+%     \end{definition}
+% \end{frame}
+
+\section{Autosubst in action}
+
+\begin{frame}[fragile]{Syntax specification}
+    \begin{figure}[H]
+        \centering
+        \begin{lstlisting}[language={[Objective]Caml},basicstyle=\footnotesize\ttfamily,keywordstyle=\bfseries]
+            tm : Type
+            ty : Type
+
+            app : tm -> tm -> tm
+            abs : ty -> (tm -> tm) -> tm
+
+            fun : ty -> ty -> ty
+            I : ty
+        \end{lstlisting}
+        \caption{stlc.sig}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[fragile]{Generated code}
+    \begin{figure}[H]
+        \centering
+        \begin{lstlisting}[language={[Objective]Caml},basicstyle=\footnotesize\ttfamily,keywordstyle=\bfseries]
+            Inductive ty : Type :=
+              | fun : ty -> ty -> ty
+              | I : ty.
+
+            Inductive tm : Type :=
+              | var_tm : nat -> tm
+              | app : tm -> tm -> tm
+              | abs : ty -> tm -> tm.
+        \end{lstlisting}
+        \caption{stlc.v}
+    \end{figure}
+\end{frame}
+
+\begin{frame}[fragile]{Example}
+    \begin{lstlisting}[mathescape=true,basicstyle=\footnotesize\ttfamily,keywordstyle=\bfseries]
+$\sigma$ : nat -> tm
+e v : tm
+    \end{lstlisting}
+    \hrule
+    \begin{onlyenv}<1>
+    \begin{lstlisting}[mathescape=true,basicstyle=\footnotesize\ttfamily,keywordstyle=\bfseries]
+P (app (abs e)[$\sigma$] v)
+    \end{lstlisting}
+    \end{onlyenv}
+    \begin{onlyenv}<2>
+    \begin{lstlisting}[mathescape=true,basicstyle=\footnotesize\ttfamily,keywordstyle=\bfseries]
+P e[1 $\cdot$ ($\sigma$ $\circ$ $\uparrow$)][v $\cdot$ id]
+    \end{lstlisting}
+    \end{onlyenv}
+    \begin{onlyenv}<3>
+    \begin{lstlisting}[mathescape=true,basicstyle=\footnotesize\ttfamily,keywordstyle=\bfseries]
+P e[v $\cdot$ $\sigma$]
+    \end{lstlisting}
+    \end{onlyenv}
+\end{frame}
+
+\section{So what have I been working on?}
+
+\begin{frame}{Termination of STLC}
+    \begin{theorem}
+        For all terms $e$, if $\,\vdash e : \tau$, then there exists a value $v$ such that $e\rightarrow^* v$.
+    \end{theorem}
+    % \vspace{0.5em}
+    % \begin{lstlisting}[basicstyle=\footnotesize\ttfamily,language={[Objective]Caml}]
+    % Theorem termination : forall (e : tm 0) T,
+    %     has_type e empty_ctxt T ->
+    %     exists v, multistep e v.
+    % \end{lstlisting}
+\end{frame}
+
+\begin{frame}{Proof using named syntax}
+    \begin{columns}
+        \column{0.5\textwidth}
+        \begin{description}
+            \item[Lines of code] 866
+            \item[Lemma count] 58
+            \item[Admit count] 14
+        \end{description}
+        \column{0.5\textwidth}
+        \begin{figure}[H]
+            \centering
+            \includegraphics[scale=0.2]{./img/sad2.jpeg}
+        \end{figure}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Proof using Autosubst 2}
+    \begin{columns}
+        \column{0.5\textwidth}
+        \begin{description}
+            \item[Lines of code] 313
+            \item[Lemma count] 21
+            \item[Admit count] 1
+        \end{description}
+        \column{0.5\textwidth}
+        \begin{figure}[H]
+            \centering
+            \includegraphics[width=\textwidth]{./img/happy.jpg}
+        \end{figure}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Summary}
+    \begin{itemize}
+        \item Single substitutions $\rightarrow$ parallel substitutions
+        \item Code generation
+        \item Autosubst 2 makes proofs easier
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Further reading}
+    \scriptsize
+    Autosubst paper: \url{https://www.ps.uni-saarland.de/Publications/documents/SchaeferEtAl_2015_Autosubst_-Reasoning.pdf}
+
+    Parallel substitutions: \url{http://www.lucacardelli.name/Papers/SRC-054.pdf}
+
+    Autosubst 2 paper: \url{https://www.ps.uni-saarland.de/Publications/documents/StarkEtAl_2018_Autosubst-2_.pdf}
+
+    Scoped terms: \url{https://link.springer.com/chapter/10.1007/11617990_1}
+
+    Logical relations: \url{https://www.cs.uoregon.edu/research/summerschool/summer23/topics.php}
+\end{frame}
+
+\end{document}
